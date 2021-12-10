@@ -50,7 +50,7 @@ bool SuspendibleThreadSet::is_synchronized() {
 void SuspendibleThreadSet::join() {
   assert(!Thread::current()->is_suspendible_thread(), "Thread already joined");
   MonitorLocker ml(STS_lock, Mutex::_no_safepoint_check_flag);
-  while (suspend_all()) {
+  while (suspend_ all()) {
     ml.wait();
   }
   _nthreads++;
