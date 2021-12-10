@@ -1495,7 +1495,15 @@ void PhaseIdealLoop::try_sink_out_of_loop(Node* n) {
       Node* early_ctrl = compute_early_ctrl(n, n_ctrl);
       if (n_loop->is_member(get_loop(early_ctrl)) && // check that this one can't be hoisted now
           ctrl_of_all_uses_out_of_loop(n, early_ctrl, n_loop)) { // All uses in outer loops!
-        assert(!n->is_Store() && !n->is_LoadStore(), "no node with a side effect");
+        if (n->is_Store()) {
+          // In some rare cases, a store could only have uses outside the loop. This happens, for example, if a single
+          // inside the loop memory output node dies after loop peeling: A CastII node of a range check gets an updated
+          // type from its iv input in IGVN which could be negative after peeling (e.g. init value of iv = i >= 0,
+          // stride: x < -i). C2, however, is not able to remove the dead loop completely. This only leaves outside the
+          // loop uses which eventually end in uncommon traps. Do not bother with these stores and bail out.
+          return;
+        }
+        assert(!n->is_LoadStore(), "no node with a side effect");
         Node* outer_loop_clone = NULL;
         for (DUIterator_Last jmin, j = n->last_outs(jmin); j >= jmin;) {
           Node* u = n->last_out(j); // Clone private computation per use
