@@ -56,7 +56,7 @@ public class ThreadLists {
         // Ensure the array is big enough for a few extras.
         Thread[] threads = new Thread[activeCount * 2];
         int newCount = top.enumerate(threads);
-	if (newCount != activeCount) {
+        if (newCount != activeCount) {
             System.out.println("Found different threads after enumeration:");
         } else {
             System.out.println("Initial set of enumerated threads:");
