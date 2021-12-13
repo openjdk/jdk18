@@ -47,7 +47,7 @@ private:
   static uint   _nthreads_stopped;
   static double _suspend_all_start;
 
-  static bool is_synchronized();
+  static bool _is_synchronized();
 
   // Add the current thread to the set. May block if a suspension is in progress.
   static void join();
