@@ -187,8 +187,8 @@ sealed public interface VaList extends Addressable permits WinVaList, SysVVaList
      *                of the underlying variable argument list.
      * @param scope scope the scope to be associated with the new variable arity list.
      * @return a new variable argument list.
-     * @throws IllegalStateException if the scope associated with {@code allocator} has been already closed,
-     * or if access occurs from a thread other than the thread owning that scope.
+     * @throws IllegalStateException if {@code scope} has been already closed, or if access occurs from a thread other
+     * than the thread owning {@code scope}.
      */
     static VaList make(Consumer<Builder> actions, ResourceScope scope) {
         Objects.requireNonNull(actions);
