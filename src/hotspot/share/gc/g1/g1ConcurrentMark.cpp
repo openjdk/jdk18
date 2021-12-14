@@ -2008,13 +2008,18 @@ void G1ConcurrentMark::print_stats() {
 }
 
 void G1ConcurrentMark::concurrent_cycle_abort() {
-  if (!cm_thread()->in_progress() || _has_aborted) {
-    // We haven't started a concurrent cycle or we have already aborted it. No need to do anything.
+  // We haven't started a concurrent cycle no need to do anything; we might have
+  // aborted the marking because of shutting down. The marking might have already
+  // completed the abort (leading to in_progress() below to return false), however
+  // this left marking state particularly in the shared marking bitmap that must
+  // be cleaned up.
+  // If there are multiple full gcs during shutdown we do too much work.
+  if (!cm_thread()->in_progress() && !_g1h->concurrent_mark_is_terminating()) {
     return;
   }
 
-  // Clear all marks in the next bitmap for the next marking cycle. This will allow us to skip the next
-  // concurrent bitmap clearing.
+  // Clear all marks in the next bitmap for the next marking cycle. This will allow
+  // us to skip the next concurrent bitmap clearing.
   {
     GCTraceTime(Debug, gc) debug("Clear Next Bitmap");
     clear_next_bitmap(_g1h->workers());
@@ -2041,6 +2046,7 @@ void G1ConcurrentMark::concurrent_cycle_abort() {
 }
 
 void G1ConcurrentMark::abort_marking_threads() {
+  assert(!_root_regions.scan_in_progress(), "still doing root region scan");
   _has_aborted = true;
   _first_overflow_barrier_sync.abort();
   _second_overflow_barrier_sync.abort();
