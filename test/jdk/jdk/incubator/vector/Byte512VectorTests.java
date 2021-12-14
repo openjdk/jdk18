@@ -3446,11 +3446,11 @@ public class Byte512VectorTests extends AbstractVectorTest {
         for (int ic = 0; ic < INVOC_COUNT; ic++) {
             for (int i = 0; i < a.length; i += SPECIES.length()) {
                 ByteVector av = ByteVector.fromArray(SPECIES, a, i);
-                av.withLane(0, (byte)4).intoArray(r, i);
+                av.withLane(SPECIES.length()-1, (byte)4).intoArray(r, i);
             }
         }
 
-        assertInsertArraysEquals(r, a, (byte)4, 0);
+        assertInsertArraysEquals(r, a, (byte)4, SPECIES.length()-1);
     }
     static boolean testIS_DEFAULT(byte a) {
         return bits(a)==0;

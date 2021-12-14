@@ -3433,11 +3433,11 @@ public class Long64VectorTests extends AbstractVectorTest {
         for (int ic = 0; ic < INVOC_COUNT; ic++) {
             for (int i = 0; i < a.length; i += SPECIES.length()) {
                 LongVector av = LongVector.fromArray(SPECIES, a, i);
-                av.withLane(0, (long)4).intoArray(r, i);
+                av.withLane(SPECIES.length()-1, (long)4).intoArray(r, i);
             }
         }
 
-        assertInsertArraysEquals(r, a, (long)4, 0);
+        assertInsertArraysEquals(r, a, (long)4, SPECIES.length()-1);
     }
     static boolean testIS_DEFAULT(long a) {
         return bits(a)==0;

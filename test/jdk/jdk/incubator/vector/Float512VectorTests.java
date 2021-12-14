@@ -2469,11 +2469,11 @@ public class Float512VectorTests extends AbstractVectorTest {
         for (int ic = 0; ic < INVOC_COUNT; ic++) {
             for (int i = 0; i < a.length; i += SPECIES.length()) {
                 FloatVector av = FloatVector.fromArray(SPECIES, a, i);
-                av.withLane(0, (float)4).intoArray(r, i);
+                av.withLane(SPECIES.length()-1, (float)4).intoArray(r, i);
             }
         }
 
-        assertInsertArraysEquals(r, a, (float)4, 0);
+        assertInsertArraysEquals(r, a, (float)4, SPECIES.length()-1);
     }
     static boolean testIS_DEFAULT(float a) {
         return bits(a)==0;

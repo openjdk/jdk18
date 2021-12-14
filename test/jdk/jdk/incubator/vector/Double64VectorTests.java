@@ -2459,11 +2459,11 @@ public class Double64VectorTests extends AbstractVectorTest {
         for (int ic = 0; ic < INVOC_COUNT; ic++) {
             for (int i = 0; i < a.length; i += SPECIES.length()) {
                 DoubleVector av = DoubleVector.fromArray(SPECIES, a, i);
-                av.withLane(0, (double)4).intoArray(r, i);
+                av.withLane(SPECIES.length()-1, (double)4).intoArray(r, i);
             }
         }
 
-        assertInsertArraysEquals(r, a, (double)4, 0);
+        assertInsertArraysEquals(r, a, (double)4, SPECIES.length()-1);
     }
     static boolean testIS_DEFAULT(double a) {
         return bits(a)==0;

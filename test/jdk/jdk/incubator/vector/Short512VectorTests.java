@@ -3436,11 +3436,11 @@ public class Short512VectorTests extends AbstractVectorTest {
         for (int ic = 0; ic < INVOC_COUNT; ic++) {
             for (int i = 0; i < a.length; i += SPECIES.length()) {
                 ShortVector av = ShortVector.fromArray(SPECIES, a, i);
-                av.withLane(0, (short)4).intoArray(r, i);
+                av.withLane(SPECIES.length()-1, (short)4).intoArray(r, i);
             }
         }
 
-        assertInsertArraysEquals(r, a, (short)4, 0);
+        assertInsertArraysEquals(r, a, (short)4, SPECIES.length()-1);
     }
     static boolean testIS_DEFAULT(short a) {
         return bits(a)==0;
