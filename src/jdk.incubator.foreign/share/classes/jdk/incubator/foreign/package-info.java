@@ -139,8 +139,8 @@
  *
  * When a memory segment is created from Java code, the segment properties (spatial bounds, temporal bounds and confinement)
  * are fully known at segment creation. But when interacting with native libraries, clients will often receive <em>raw</em> pointers.
- * Such pointers have no spatial bounds (does the C type {@code char*} refer to a single {@code char} value,
- * or an array of {@code char} values, of given size?). Nor do they have any notion of temporal bounds or thread-confinement.
+ * Such pointers have no spatial bounds. For example, the C type {@code char*} can refer to a single {@code char} value,
+ * or an array of {@code char} values, of given size. Nor do said pointers have any notion of temporal bounds or thread-confinement.
  * <p>
  * Raw pointers are modelled using the {@link jdk.incubator.foreign.MemoryAddress} class. When clients receive a
  * memory address instance from a foreign function call, they can perform memory dereference on it directly,
