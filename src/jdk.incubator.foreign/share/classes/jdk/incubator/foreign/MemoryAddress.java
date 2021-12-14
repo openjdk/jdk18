@@ -33,7 +33,7 @@ import java.lang.invoke.MethodHandle;
 import java.nio.ByteOrder;
 
 /**
- * A memory address models a reference into a memory location. Memory addresses are typically obtained in onw of the following ways:
+ * A memory address models a reference into a memory location. Memory addresses are typically obtained in one of the following ways:
  * <ul>
  *     <li>By calling {@link Addressable#address()} on an instance of type {@link Addressable} (e.g. a memory segment);</li>
  *     <li>By invoking a {@linkplain CLinker#downcallHandle(FunctionDescriptor) downcall method handle} which returns a pointer;</li>
