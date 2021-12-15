@@ -824,10 +824,8 @@ bool Method::can_be_statically_bound(InstanceKlass* context) const {
  *  Returns true otherwise.
  */
 bool Method::can_omit_stack_trace() {
-  if (method_holder()->class_loader_data()->is_boot_class_loader_data()) {
-    if (klass_name() == vmSymbols::sun_invoke_util_ValueConversions()) {
-      return false; // All methods in sun.invoke.util.ValueConversions
-    }
+  if (klass_name() == vmSymbols::sun_invoke_util_ValueConversions()) {
+    return false; // All methods in sun.invoke.util.ValueConversions
   }
   return true;
 }
