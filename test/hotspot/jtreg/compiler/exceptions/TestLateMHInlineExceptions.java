@@ -48,6 +48,13 @@ public class TestLateMHInlineExceptions {
             }
             test2(test);
             test2(null);
+            test3(test);
+            try {
+                test3(null);
+            } catch (NullPointerException npe) {
+            }
+            test4(test);
+            test4(null);
         }
     }
 
@@ -80,4 +87,19 @@ public class TestLateMHInlineExceptions {
         }
     }
 
+    private static void inlined(TestLateMHInlineExceptions test) throws Throwable {
+        mh.invokeExact(test);
+    }
+    
+    
+    private static void test3(TestLateMHInlineExceptions test) throws Throwable {
+        inlined(test);
+    }
+
+    private static void test4(TestLateMHInlineExceptions test) throws Throwable {
+        try {
+            inlined(test);
+        } catch (NullPointerException npe) {
+        }
+    }
 }
