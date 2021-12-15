@@ -90,8 +90,8 @@ public class TestLateMHInlineExceptions {
     private static void inlined(TestLateMHInlineExceptions test) throws Throwable {
         mh.invokeExact(test);
     }
-    
-    
+
+
     private static void test3(TestLateMHInlineExceptions test) throws Throwable {
         inlined(test);
     }
