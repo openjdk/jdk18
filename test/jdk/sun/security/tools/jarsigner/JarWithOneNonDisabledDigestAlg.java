@@ -23,8 +23,8 @@
 
 /*
  * @test
- * @bug 1111111
- * @summary weakly signed jars test
+ * @bug 8278851 
+ * @summary Correct signer logic for jars signed with multiple weak digestalgs
  * @library /test/lib
  * @build jdk.test.lib.util.JarUtils
  *        jdk.test.lib.security.SecurityUtils
