@@ -210,6 +210,8 @@ public class ManifestEntryVerifier {
         JarConstraintsParameters params =
             getParams(verifiedSigners, sigFileSigners);
 
+        // If only disabled algorithms are used.
+        boolean onlyDisabledAlgs = (params == null) ? false : true;
         for (int i=0; i < digests.size(); i++) {
             MessageDigest digest = digests.get(i);
             if (params != null) {
@@ -218,11 +220,11 @@ public class ManifestEntryVerifier {
                         name + " entry");
                     DisabledAlgorithmConstraints.jarConstraints()
                            .permits(digest.getAlgorithm(), params, false);
+                    onlyDisabledAlgs = false;
                 } catch (GeneralSecurityException e) {
                     if (debug != null) {
                         debug.println("Digest algorithm is restricted: " + e);
                     }
-                    return null;
                 }
             }
             byte [] manHash = manifestHashes.get(i);
@@ -239,6 +241,11 @@ public class ManifestEntryVerifier {
             if (!MessageDigest.isEqual(theHash, manHash))
                 throw new SecurityException(digest.getAlgorithm()+
                                             " digest error for "+name);
+        }
+
+        // If there were only entries with disabled algorithms, return null.
+        if (onlyDisabledAlgs) {
+            return null;
         }
 
         // take it out of sigFileSigners and put it in verifiedSigners...

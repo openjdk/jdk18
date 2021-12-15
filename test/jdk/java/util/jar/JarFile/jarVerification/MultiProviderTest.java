@@ -40,16 +40,15 @@
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
 import jdk.test.lib.JDKToolFinder;
-import jdk.test.lib.JDKToolLauncher;
 import jdk.test.lib.Utils;
 import jdk.test.lib.compiler.CompilerUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
+import jdk.test.lib.security.SecurityUtils;
 import jdk.test.lib.util.JarUtils;
 
 import static java.nio.file.StandardOpenOption.CREATE;
@@ -99,7 +98,7 @@ public class MultiProviderTest {
 
     public static void initialize() throws Throwable {
         if (signJars) {
-            genKey();
+            SecurityUtils.genKeyPair(KEYSTORE, ALIAS, STOREPASS, KEYPASS, "rsa", "SHA256withRSA");
         }
         for (int i = 0; i < NUM_JARS; i++) {
             String p = "FooProvider" + i;
@@ -111,7 +110,8 @@ public class MultiProviderTest {
             CompilerUtils.compile(javaPath, Path.of(System.getProperty("test.classes")), "-cp", Utils.TEST_CLASS_PATH);
             createJar(jarPath, p, List.of(p));
             if (signJars) {
-                signJar(TEST_CLASS_PATH + File.separator + jarName);
+                SecurityUtils.signJarFile(TEST_CLASS_PATH + File.separator + jarName,
+                        KEYSTORE, STOREPASS, KEYPASS, "SHA-256", ALIAS);
             }
             COMBO_CP += TEST_CLASS_PATH + File.separator + jarName + File.pathSeparator;
         }
@@ -133,53 +133,5 @@ public class MultiProviderTest {
         }
         JarUtils.createJarFile(Path.of(TEST_CLASS_PATH, jar.getFileName().toString()), xdir);
     }
-
-    private static void genKey() throws Throwable {
-        String keytool = JDKToolFinder.getJDKTool("keytool");
-        Files.deleteIfExists(Paths.get(KEYSTORE));
-        ProcessTools.executeCommand(keytool,
-                "-J-Duser.language=en",
-                "-J-Duser.country=US",
-                "-genkey",
-                "-keyalg", "rsa",
-                "-alias", ALIAS,
-                "-keystore", KEYSTORE,
-                "-keypass", KEYPASS,
-                "-dname", "cn=sample",
-                "-storepass", STOREPASS
-        ).shouldHaveExitValue(0);
-    }
-
-
-    private static OutputAnalyzer signJar(String jarName) throws Throwable {
-        List<String> args = new ArrayList<>();
-        args.add("-verbose");
-        args.add(jarName);
-        args.add(ALIAS);
-
-        return jarsigner(args);
-    }
-
-    private static OutputAnalyzer jarsigner(List<String> extra)
-            throws Throwable {
-        JDKToolLauncher launcher = JDKToolLauncher.createUsingTestJDK("jarsigner")
-                .addVMArg("-Duser.language=en")
-                .addVMArg("-Duser.country=US")
-                .addToolArg("-keystore")
-                .addToolArg(KEYSTORE)
-                .addToolArg("-storepass")
-                .addToolArg(STOREPASS)
-                .addToolArg("-keypass")
-                .addToolArg(KEYPASS);
-        for (String s : extra) {
-            if (s.startsWith("-J")) {
-                launcher.addVMArg(s.substring(2));
-            } else {
-                launcher.addToolArg(s);
-            }
-        }
-        return ProcessTools.executeCommand(launcher.getCommand());
-    }
-
 }
 
