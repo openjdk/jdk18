@@ -818,6 +818,20 @@ bool Method::can_be_statically_bound(InstanceKlass* context) const {
   return (method_holder() == context) && can_be_statically_bound();
 }
 
+/**
+ *  Returns false if this is one of specially treated methods for
+ *  which we have to provide stack trace in throw in compiled code.
+ *  Returns true otherwise.
+ */
+bool Method::can_omit_stack_trace() {
+  if (method_holder()->class_loader_data()->is_boot_class_loader_data()) {
+    if (klass_name() == vmSymbols::sun_invoke_util_ValueConversions()) {
+      return false; // All methods in sun.invoke.util.ValueConversions
+    }
+  }
+  return true;
+}
+
 bool Method::is_accessor() const {
   return is_getter() || is_setter();
 }
