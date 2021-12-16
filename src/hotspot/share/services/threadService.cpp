@@ -683,10 +683,12 @@ void ThreadStackTrace::dump_stack_at_safepoint(int maxDepth, ObjectMonitorsHasht
 
   if (_with_locked_monitors) {
     // Iterate inflated monitors and find monitors locked by this thread
-    // and not found in the stack:
+    // that are not found in the stack, e.g. JNI locked monitors:
     InflatedMonitorsClosure imc(this);
     if (table != nullptr) {
-      // Get the ObjectMonitors locked by this thread (if any):
+      // Get the ObjectMonitors locked by the target thread, if any,
+      // and does not include any where owner is set to a stack lock
+      // address in the target thread:
       ObjectMonitorsHashtable::PtrList* list = table->get_entry(_thread);
       if (list != nullptr) {
         ObjectSynchronizer::monitors_iterate(&imc, list, _thread);

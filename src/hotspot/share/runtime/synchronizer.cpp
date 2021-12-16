@@ -74,17 +74,13 @@ ObjectMonitorsHashtable::~ObjectMonitorsHashtable() {
 
 void ObjectMonitorsHashtable::add_entry(JavaThread* jt, ObjectMonitor* om) {
   ObjectMonitorsHashtable::PtrList* list = get_entry(jt);
-  if (list != nullptr) {
-    // Add to existing list from the hash table:
-    list->add(om);
-    _om_count++;
-  } else {
-    // Create new list, add the ObjectMonitor* to it, and add the list to the hash table:
+  if (list == nullptr) {
+    // Create new list and add it to the hash table:
     list = new (ResourceObj::C_HEAP, mtThread) ObjectMonitorsHashtable::PtrList();
-    list->add(om);
-    _om_count++;
     add_entry(jt, list);
   }
+  list->add(om);  // Add the ObjectMonitor to the list.
+  _om_count++;
 }
 
 bool ObjectMonitorsHashtable::has_entry(JavaThread* jt, ObjectMonitor* om) {
@@ -1030,6 +1026,9 @@ JavaThread* ObjectSynchronizer::get_lock_owner(ThreadsList * t_list, Handle h_ob
 
 // Visitors ...
 
+// Iterate ObjectMonitors where the owner == thread; this does NOT include
+// ObjectMonitors where owner is set to a stack lock address in thread.
+//
 // This version of monitors_iterate() works with the in-use monitor list.
 //
 void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* thread) {
@@ -1037,6 +1036,8 @@ void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure, JavaThread* t
   while (iter.has_next()) {
     ObjectMonitor* mid = iter.next();
     if (mid->owner() != thread) {
+      // Not owned by the target thread and intentionally skips when owner
+      // is set to a stack lock address in the target thread.
       continue;
     }
     if (!mid->is_being_async_deflated() && mid->object_peek() != NULL) {
@@ -1059,9 +1060,10 @@ void ObjectSynchronizer::monitors_iterate(MonitorClosure* closure,
                                           ObjectMonitorsHashtable::PtrList* list,
                                           JavaThread* thread) {
   typedef LinkedListIterator<ObjectMonitor*> ObjectMonitorIterator;
-  ObjectMonitorIterator iter = ObjectMonitorIterator(list->head());
+  ObjectMonitorIterator iter(list->head());
   while (!iter.is_empty()) {
     ObjectMonitor* mid = *iter.next();
+    // Owner set to a stack lock address in thread should never be seen here:
     assert(mid->owner() == thread, "must be");
     if (!mid->is_being_async_deflated() && mid->object_peek() != NULL) {
       // Only process with closure if the object is set.
@@ -1402,6 +1404,14 @@ void ObjectSynchronizer::chk_for_block_req(JavaThread* current, const char* op_n
 
 // Walk the in-use list and deflate (at most MonitorDeflationMax) idle
 // ObjectMonitors. Returns the number of deflated ObjectMonitors.
+//
+// If table != nullptr, we gather owned ObjectMonitors indexed by the
+// owner in the table. Please note that ObjectMonitors where the owner
+// is set to a stack lock address are NOT associated with the JavaThread
+// that holds that stack lock. All of the current consumers of
+// ObjectMonitorsHashtable info only care about JNI locked monitors and
+// those do not have the owner set to a stack lock address.
+//
 size_t ObjectSynchronizer::deflate_monitor_list(Thread* current, LogStream* ls,
                                                 elapsedTimer* timer_p,
                                                 ObjectMonitorsHashtable* table) {
@@ -1416,11 +1426,14 @@ size_t ObjectSynchronizer::deflate_monitor_list(Thread* current, LogStream* ls,
     if (mid->deflate_monitor()) {
       deflated_count++;
     } else if (table != nullptr) {
-      // The caller is interested in the owned ObjectMonitors. This does not capture
-      // unowned ObjectMonitors that cannot be deflated because of a waiter. Since
-      // deflate_idle_monitors() and deflate_monitor_list() can be called more than
-      // once, we have to make sure the entry has not already been added.
+      // The caller is interested in the owned ObjectMonitors. This does
+      // not include when owner is set to a stack lock address in thread.
+      // This also does not capture unowned ObjectMonitors that cannot be
+      // deflated because of a waiter.
       JavaThread* jt = (JavaThread*)mid->owner();
+      // Since deflate_idle_monitors() and deflate_monitor_list() can be
+      // called more than once, we have to make sure the entry has not
+      // already been added.
       if (jt != nullptr && !table->has_entry(jt, mid)) {
         table->add_entry(jt, mid);
       }
