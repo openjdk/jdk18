@@ -22,55 +22,55 @@
  *
  */
 super public class TestC1PhiPlacementPathology
-	version 62:0
+   version 62:0
 {
   public static volatile Field sideEffect:I;
 
   public Method "<init>":"()V"
-	stack 1 locals 1
+   stack 1 locals 1
   {
-		aload_0;
-		invokespecial	Method java/lang/Object."<init>":"()V";
-		return;
+      aload_0;
+      invokespecial   Method java/lang/Object."<init>":"()V";
+      return;
   }
   private static Method effect:"(I)V"
-	stack 2 locals 1
+   stack 2 locals 1
   {
-		getstatic	Field sideEffect:"I";
-		iload_0;
-		iadd;
-		putstatic	Field sideEffect:"I";
-		return;
+      getstatic   Field sideEffect:"I";
+      iload_0;
+      iadd;
+      putstatic   Field sideEffect:"I";
+      return;
   }
   public static Method test:"(I)V"
-	stack 2 locals 2
+   stack 2 locals 2
   {
-		iconst_0;
-		istore_1;
-		iload_0;
-		iconst_2;
-		irem;
-		ifne	MODIFY_LOCAL;
-		iinc	1, 1;
-		goto	LH2;
-	MODIFY_LOCAL:	stack_frame_type append;
-		locals_map int;
-		iinc	1, 2;
-		iinc	0, 1;
+      iconst_0;
+      istore_1;
+      iload_0;
+      iconst_2;
+      irem;
+      ifne   MODIFY_LOCAL;
+      iinc   1, 1;
+      goto   LH2;
+   MODIFY_LOCAL:   stack_frame_type append;
+      locals_map int;
+      iinc   1, 2;
+      iinc   0, 1;
     goto LH1;
-	LH1:	stack_frame_type same;
-		iinc	1, 1;
-		iload_1;
-		sipush	10000;
-		if_icmpge	EXIT;
-	LH2:	stack_frame_type same;
-		iinc	1, 1;
-		goto	LH1;
-	EXIT:	stack_frame_type same;
-		iload_1;
-		iload_0;
-		iadd;
-		invokestatic	Method effect:"(I)V";
-		return;
+   LH1:   stack_frame_type same;
+      iinc   1, 1;
+      iload_1;
+      sipush   10000;
+      if_icmpge   EXIT;
+   LH2:   stack_frame_type same;
+      iinc   1, 1;
+      goto   LH1;
+   EXIT:   stack_frame_type same;
+      iload_1;
+      iload_0;
+      iadd;
+      invokestatic   Method effect:"(I)V";
+      return;
   }
 } // end Class TestC1PhiPlacementPathology
