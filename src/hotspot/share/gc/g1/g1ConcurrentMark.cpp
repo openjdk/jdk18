@@ -2009,17 +2009,20 @@ void G1ConcurrentMark::print_stats() {
 
 void G1ConcurrentMark::concurrent_cycle_abort() {
   // We haven't started a concurrent cycle no need to do anything; we might have
-  // aborted the marking because of shutting down. The marking might have already
-  // completed the abort (leading to in_progress() below to return false), however
-  // this left marking state particularly in the shared marking bitmap that must
-  // be cleaned up.
-  // If there are multiple full gcs during shutdown we do too much work.
+  // aborted the marking because of shutting down though. In this case the marking
+  // might have already completed the abort (leading to in_progress() below to
+  // return false), however this still left marking state particularly in the
+  // shared marking bitmap that must be cleaned up.
+  // If there are multiple full gcs during shutdown we do this work repeatedly for
+  // nothing, but this situation should be extremely rare (a full gc after shutdown
+  // has been signalled is alredy rare), and this work should be negligible compared
+  // to actual full gc work.
   if (!cm_thread()->in_progress() && !_g1h->concurrent_mark_is_terminating()) {
     return;
   }
 
-  // Clear all marks in the next bitmap for the next marking cycle. This will allow
-  // us to skip the next concurrent bitmap clearing.
+  // Clear all marks in the next bitmap for this full gc as it has been used by the
+  // marking that is interrupted by this full gc.
   {
     GCTraceTime(Debug, gc) debug("Clear Next Bitmap");
     clear_next_bitmap(_g1h->workers());
