@@ -37,11 +37,13 @@ class LogStream;
 class ObjectMonitor;
 class ThreadsList;
 
-// Hash table of JavaThread* to a list of ObjectMonitor* owned by the JavaThread*.
+// Hash table of void* to a list of ObjectMonitor* owned by the JavaThread.
+// The JavaThread's owner key is either a JavaThread* or a stack lock
+// address in the JavaThread so we use "void*".
 //
 class ObjectMonitorsHashtable {
  private:
-  static unsigned int ptr_hash(JavaThread* const& s1) {
+  static unsigned int ptr_hash(void* const& s1) {
     // 2654435761 = 2^32 * Phi (golden ratio)
     return (unsigned int)(((uint32_t)(uintptr_t)s1) * 2654435761u);
   }
@@ -53,8 +55,7 @@ class ObjectMonitorsHashtable {
 
   // ResourceHashtable SIZE is specified at compile time so we
   // use 1031 which is the first prime after 1024.
-  typedef ResourceHashtable<JavaThread*, PtrList*, 1031,
-                            ResourceObj::C_HEAP, mtThread,
+  typedef ResourceHashtable<void*, PtrList*, 1031, ResourceObj::C_HEAP, mtThread,
                             &ObjectMonitorsHashtable::ptr_hash> PtrTable;
  private:
   PtrTable* _ptrs;
@@ -69,24 +70,24 @@ class ObjectMonitorsHashtable {
 
   ~ObjectMonitorsHashtable();
 
-  void add_entry(JavaThread* jt, ObjectMonitor* om);
+  void add_entry(void* key, ObjectMonitor* om);
 
-  void add_entry(JavaThread* jt, PtrList* list) {
-    _ptrs->put(jt, list);
+  void add_entry(void* key, PtrList* list) {
+    _ptrs->put(key, list);
     _jt_count++;
   }
 
-  PtrList* get_entry(JavaThread* jt) {
-    PtrList** listpp = _ptrs->get(jt);
+  PtrList* get_entry(void* key) {
+    PtrList** listpp = _ptrs->get(key);
     return (listpp == nullptr) ? nullptr : *listpp;
   }
 
-  bool has_entry(JavaThread* jt) {
-    PtrList** listpp = _ptrs->get(jt);
+  bool has_entry(void* key) {
+    PtrList** listpp = _ptrs->get(key);
     return listpp != nullptr && *listpp != nullptr;
   }
 
-  bool has_entry(JavaThread* jt, ObjectMonitor* om);
+  bool has_entry(void* key, ObjectMonitor* om);
 
   size_t jt_count() { return _jt_count; }
   size_t om_count() { return _om_count; }

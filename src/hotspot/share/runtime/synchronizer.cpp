@@ -59,7 +59,7 @@
 
 class CleanupObjectMonitorsHashtable: StackObj {
  public:
-  bool do_entry(JavaThread*& key, ObjectMonitorsHashtable::PtrList*& list) {
+  bool do_entry(void*& key, ObjectMonitorsHashtable::PtrList*& list) {
     list->clear();  // clear the LinkListNodes
     delete list;    // then delete the LinkedList
     return true;
@@ -72,19 +72,19 @@ ObjectMonitorsHashtable::~ObjectMonitorsHashtable() {
   delete _ptrs;             // then delete the hash table
 }
 
-void ObjectMonitorsHashtable::add_entry(JavaThread* jt, ObjectMonitor* om) {
-  ObjectMonitorsHashtable::PtrList* list = get_entry(jt);
+void ObjectMonitorsHashtable::add_entry(void* key, ObjectMonitor* om) {
+  ObjectMonitorsHashtable::PtrList* list = get_entry(key);
   if (list == nullptr) {
     // Create new list and add it to the hash table:
     list = new (ResourceObj::C_HEAP, mtThread) ObjectMonitorsHashtable::PtrList();
-    add_entry(jt, list);
+    add_entry(key, list);
   }
   list->add(om);  // Add the ObjectMonitor to the list.
   _om_count++;
 }
 
-bool ObjectMonitorsHashtable::has_entry(JavaThread* jt, ObjectMonitor* om) {
-  ObjectMonitorsHashtable::PtrList* list = get_entry(jt);
+bool ObjectMonitorsHashtable::has_entry(void* key, ObjectMonitor* om) {
+  ObjectMonitorsHashtable::PtrList* list = get_entry(key);
   if (list == nullptr || list->find(om) == nullptr) {
     return false;
   }
@@ -1430,12 +1430,12 @@ size_t ObjectSynchronizer::deflate_monitor_list(Thread* current, LogStream* ls,
       // not include when owner is set to a stack lock address in thread.
       // This also does not capture unowned ObjectMonitors that cannot be
       // deflated because of a waiter.
-      JavaThread* jt = (JavaThread*)mid->owner();
+      void* key = mid->owner();
       // Since deflate_idle_monitors() and deflate_monitor_list() can be
       // called more than once, we have to make sure the entry has not
       // already been added.
-      if (jt != nullptr && !table->has_entry(jt, mid)) {
-        table->add_entry(jt, mid);
+      if (key != nullptr && !table->has_entry(key, mid)) {
+        table->add_entry(key, mid);
       }
     }
 
