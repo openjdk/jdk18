@@ -1546,8 +1546,8 @@ size_t ObjectSynchronizer::deflate_idle_monitors(ObjectMonitorsHashtable* table)
     ls->print_cr("end deflating: in_use_list stats: ceiling=" SIZE_FORMAT ", count=" SIZE_FORMAT ", max=" SIZE_FORMAT,
                  in_use_list_ceiling(), _in_use_list.count(), _in_use_list.max());
     if (table != nullptr) {
-      ls->print_cr("ObjectMonitorsHashtable: jt_count=" SIZE_FORMAT ", om_count=" SIZE_FORMAT,
-                   table->jt_count(), table->om_count());
+      ls->print_cr("ObjectMonitorsHashtable: key_count=" SIZE_FORMAT ", om_count=" SIZE_FORMAT,
+                   table->key_count(), table->om_count());
     }
   }
 

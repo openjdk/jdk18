@@ -59,14 +59,14 @@ class ObjectMonitorsHashtable {
                             &ObjectMonitorsHashtable::ptr_hash> PtrTable;
  private:
   PtrTable* _ptrs;
-  size_t _jt_count;
+  size_t _key_count;
   size_t _om_count;
 
  public:
   // ResourceHashtable is passed to various functions and populated in
   // different places so we allocate it using C_HEAP to make it immune
   // from any ResourceMarks that happen to be in the code paths.
-  ObjectMonitorsHashtable() : _ptrs(new (ResourceObj::C_HEAP, mtThread) PtrTable()), _jt_count(0), _om_count(0) {}
+  ObjectMonitorsHashtable() : _ptrs(new (ResourceObj::C_HEAP, mtThread) PtrTable()), _key_count(0), _om_count(0) {}
 
   ~ObjectMonitorsHashtable();
 
@@ -74,7 +74,7 @@ class ObjectMonitorsHashtable {
 
   void add_entry(void* key, PtrList* list) {
     _ptrs->put(key, list);
-    _jt_count++;
+    _key_count++;
   }
 
   PtrList* get_entry(void* key) {
@@ -89,7 +89,7 @@ class ObjectMonitorsHashtable {
 
   bool has_entry(void* key, ObjectMonitor* om);
 
-  size_t jt_count() { return _jt_count; }
+  size_t key_count() { return _key_count; }
   size_t om_count() { return _om_count; }
 };
 
