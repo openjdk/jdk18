@@ -6763,11 +6763,6 @@ bool LibraryCallKit::inline_galoisCounterMode_AESCrypt() {
   Node* gctr_object = argument(7);
   Node* ghash_object = argument(8);
 
-  // Set the original stack and the reexecute bit for the interpreter to reexecute
-  // implGCMCrypt0 if deoptimization happens.
-  { PreserveReexecuteState preexecs(this);
-    jvms()->set_should_reexecute(true);
-
     // (1) in, ct and out are arrays.
     const Type* in_type = in->Value(&_gvn);
     const Type* ct_type = ct->Value(&_gvn);
@@ -6822,33 +6817,17 @@ bool LibraryCallKit::inline_galoisCounterMode_AESCrypt() {
     Node* state_start = array_element_address(state, intcon(0), T_LONG);
     Node* subkeyHtbl_start = array_element_address(subkeyHtbl, intcon(0), T_LONG);
 
-    ciKlass* klass = ciTypeArrayKlass::make(T_LONG);
-    Node* klass_node = makecon(TypeKlassPtr::make(klass));
-
-    // Does this target support this intrinsic?
-    if (Matcher::htbl_entries == -1) return false;
-
-    Node* subkeyHtbl_48_entries_start;
-    if (Matcher::htbl_entries != 0) {
-      // new array to hold 48 computed htbl entries
-      Node* subkeyHtbl_48_entries = new_array(klass_node, intcon(Matcher::htbl_entries), 0);
-      if (subkeyHtbl_48_entries == NULL) return false;
-      subkeyHtbl_48_entries_start = array_element_address(subkeyHtbl_48_entries, intcon(0), T_LONG);
-    } else {
-      // This target doesn't need the extra-large Htbl.
-      subkeyHtbl_48_entries_start = ConvL2X(intcon(0));
-    }
 
     // Call the stub, passing params
     Node* gcmCrypt = make_runtime_call(RC_LEAF|RC_NO_FP,
                                  OptoRuntime::galoisCounterMode_aescrypt_Type(),
                                  stubAddr, stubName, TypePtr::BOTTOM,
-                                 in_start, len, ct_start, out_start, k_start, state_start, subkeyHtbl_start, subkeyHtbl_48_entries_start, cnt_start);
+                                 in_start, len, ct_start, out_start, k_start, state_start, subkeyHtbl_start, cnt_start);
 
     // return cipher length (int)
     Node* retvalue = _gvn.transform(new ProjNode(gcmCrypt, TypeFunc::Parms));
     set_result(retvalue);
-  }
+
   return true;
 }
 
