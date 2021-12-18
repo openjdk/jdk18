@@ -4441,14 +4441,21 @@ class StubGenerator: public StubCodeGenerator {
     __ movptr(key, key_mem);
     __ movptr(state, state_mem);
 #endif
-    __ subptr(rsp, 96 * longSize); // Create space on the stack for htbl entries
     __ movptr(subkeyHtbl, subkeyH_mem);
-    __ movptr(avx512_subkeyHtbl, rsp);
     __ movptr(counter, counter_mem);
+// Save rbp and rsp
+    __ push(rbp);
+    __ movq(rbp, rsp);
+// Align stack
+    __ andq(rsp, -64);
+    __ subptr(rsp, 96 * longSize); // Create space on the stack for htbl entries
+    __ movptr(avx512_subkeyHtbl, rsp);
 
     __ aesgcm_encrypt(in, len, ct, out, key, state, subkeyHtbl, avx512_subkeyHtbl, counter);
 
     __ addptr(rsp, 96 * longSize);
+    __ movq(rsp, rbp);
+    __ pop(rbp);
 
     // Restore state before leaving routine
 #ifdef _WIN64
