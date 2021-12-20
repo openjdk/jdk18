@@ -4453,7 +4453,6 @@ class StubGenerator: public StubCodeGenerator {
 
     __ aesgcm_encrypt(in, len, ct, out, key, state, subkeyHtbl, avx512_subkeyHtbl, counter);
 
-    __ addptr(rsp, 96 * longSize);
     __ movq(rsp, rbp);
     __ pop(rbp);
 
