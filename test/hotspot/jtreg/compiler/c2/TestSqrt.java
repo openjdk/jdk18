@@ -41,7 +41,7 @@ public class TestSqrt {
     static double dstD;
 
     public static void test() {
-        dstF = (float)Math.sqrt((double)dstF);
+        dstF = (float)Math.sqrt((double)srcF);
         dstD = Math.sqrt(srcD);
     }
 
