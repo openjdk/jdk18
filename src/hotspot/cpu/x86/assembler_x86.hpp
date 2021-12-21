@@ -1517,6 +1517,8 @@ private:
   void kshiftrql(KRegister dst, KRegister src, int imm8);
   void ktestq(KRegister src1, KRegister src2);
   void ktestd(KRegister src1, KRegister src2);
+  void kunpckdql(KRegister dst, KRegister src1, KRegister src2);
+
 
   void ktestql(KRegister dst, KRegister src);
   void ktestdl(KRegister dst, KRegister src);

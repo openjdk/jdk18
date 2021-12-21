@@ -9451,19 +9451,6 @@ instruct evcmp_masked(kReg dst, vec src1, vec src2, immI8 cond, kReg mask, rRegP
   ins_pipe( pipe_slow );
 %}
 
-instruct mask_all_evexI_imm_LE32(kReg dst, immI cnt, rRegI tmp) %{
-  predicate(Matcher::vector_length(n) <= 32);
-  match(Set dst (MaskAll cnt));
-  effect(TEMP dst, TEMP tmp);
-  format %{ "mask_all_evexI_imm_LE32 $dst, $cnt \t! using $tmp as TEMP" %}
-  ins_encode %{
-    int mask_len = Matcher::vector_length(this);
-    __ movl($tmp$$Register, $cnt$$constant);
-    __ vector_maskall_operation($dst$$KRegister, $tmp$$Register, mask_len);
-  %}
-  ins_pipe( pipe_slow );
-%}
-
 instruct mask_all_evexI_LE32(kReg dst, rRegI src) %{
   predicate(Matcher::vector_length(n) <= 32);
   match(Set dst (MaskAll src));

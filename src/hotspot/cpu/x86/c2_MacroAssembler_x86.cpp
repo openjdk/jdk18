@@ -4278,15 +4278,21 @@ void C2_MacroAssembler::vector_maskall_operation(KRegister dst, Register src, in
   if (VM_Version::supports_avx512bw()) {
     if (mask_len > 32) {
       kmovql(dst, src);
-      kshiftrql(dst, dst, 64 - mask_len);
+      if (mask_len != 64) {
+        kshiftrql(dst, dst, 64 - mask_len);
+      }
     } else {
       kmovdl(dst, src);
-      kshiftrdl(dst, dst, 32 - mask_len);
+      if (mask_len != 32) {
+        kshiftrdl(dst, dst, 32 - mask_len);
+      }
     }
   } else {
     assert(mask_len <= 16, "");
     kmovwl(dst, src);
-    kshiftrwl(dst, dst, 16 - mask_len);
+    if (mask_len != 16) {
+      kshiftrwl(dst, dst, 16 - mask_len);
+    }
   }
 }
 
@@ -4294,8 +4300,7 @@ void C2_MacroAssembler::vector_maskall_operation(KRegister dst, Register src, in
 void C2_MacroAssembler::vector_maskall_operation32(KRegister dst, Register src, KRegister tmp, int mask_len) {
   assert(VM_Version::supports_avx512bw(), "");
   kmovdl(tmp, src);
-  kshiftlql(dst, tmp, 32);
-  korql(dst, dst, tmp);
+  kunpckdql(dst, tmp, tmp);
   kshiftrql(dst, dst, 64 - mask_len);
 }
 #endif
