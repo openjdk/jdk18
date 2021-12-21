@@ -385,9 +385,15 @@ instruct vmaskAll$1(pRegGov dst, ifelse($1, `I', iRegIorL2I, iRegL) src, vReg tm
   ins_encode %{
     BasicType bt = Matcher::vector_element_basic_type(this);
     Assembler::SIMD_RegVariant size = __ elemType_to_regVariant(bt);
+    uint length_in_bytes = Matcher::vector_length_in_bytes(this);
     __ sve_dup(as_FloatRegister($tmp$$reg), size, as_Register($src$$reg));
-    __ sve_ptrue_lanecnt(as_PRegister($dst$$reg), size, Matcher::vector_length(this));
-    __ sve_cmp(Assembler::NE, as_PRegister($dst$$reg), size, as_PRegister($dst$$reg), as_FloatRegister($tmp$$reg), 0);
+    if (length_in_bytes < MaxVectorSize) {
+      __ sve_ptrue_lanecnt(as_PRegister($dst$$reg), size, Matcher::vector_length(this));
+      __ sve_cmp(Assembler::NE, as_PRegister($dst$$reg), size,
+                 as_PRegister($dst$$reg), as_FloatRegister($tmp$$reg), 0);
+    } else {
+      __ sve_cmp(Assembler::NE, as_PRegister($dst$$reg), size, ptrue, as_FloatRegister($tmp$$reg), 0);
+    }
   %}
   ins_pipe(pipe_slow);
 %}')dnl
