@@ -13013,7 +13013,6 @@ instruct safePoint_poll_tls(rFlagsReg cr, rRegP poll)
 
 instruct mask_all_evexL(kReg dst, rRegL src) %{
   match(Set dst (MaskAll src));
-  effect(TEMP dst);
   format %{ "mask_all_evexL $dst, $src \t! mask all operation" %}
   ins_encode %{
     int mask_len = Matcher::vector_length(this);
@@ -13025,7 +13024,7 @@ instruct mask_all_evexL(kReg dst, rRegL src) %{
 instruct mask_all_evexI_GT32(kReg dst, rRegI src, rRegL tmp) %{
   predicate(Matcher::vector_length(n) > 32);
   match(Set dst (MaskAll src));
-  effect(TEMP dst, TEMP tmp);
+  effect(TEMP tmp);
   format %{ "mask_all_evexI_GT32 $dst, $src \t! using $tmp as TEMP" %}
   ins_encode %{
     int mask_len = Matcher::vector_length(this);

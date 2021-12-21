@@ -13850,7 +13850,6 @@ instruct cmpFastUnlock(eFlagsReg cr, eRegP object, eAXRegP box, eRegP tmp ) %{
 instruct mask_all_evexL_LT32(kReg dst, eRegL src) %{
   predicate(Matcher::vector_length(n) <= 32);
   match(Set dst (MaskAll src));
-  effect(TEMP dst);
   format %{ "mask_all_evexL_LE32 $dst, $src \t" %}
   ins_encode %{
     int mask_len = Matcher::vector_length(this);
@@ -13862,7 +13861,7 @@ instruct mask_all_evexL_LT32(kReg dst, eRegL src) %{
 instruct mask_all_evexL_GT32(kReg dst, eRegL src, kReg ktmp) %{
   predicate(Matcher::vector_length(n) > 32);
   match(Set dst (MaskAll src));
-  effect(TEMP dst, TEMP ktmp);
+  effect(TEMP ktmp);
   format %{ "mask_all_evexL_GT32 $dst, $src \t! using $ktmp as TEMP " %}
   ins_encode %{
     int mask_len = Matcher::vector_length(this);
@@ -13874,7 +13873,7 @@ instruct mask_all_evexL_GT32(kReg dst, eRegL src, kReg ktmp) %{
 instruct mask_all_evexI_GT32(kReg dst, rRegI src, kReg ktmp) %{
   predicate(Matcher::vector_length(n) > 32);
   match(Set dst (MaskAll src));
-  effect(TEMP dst, TEMP ktmp);
+  effect(TEMP ktmp);
   format %{ "mask_all_evexI_GT32 $dst, $src \t! using $ktmp as TEMP" %}
   ins_encode %{
     int mask_len = Matcher::vector_length(this);

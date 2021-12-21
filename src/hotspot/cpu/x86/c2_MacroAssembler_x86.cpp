@@ -4278,9 +4278,6 @@ void C2_MacroAssembler::vector_maskall_operation(KRegister dst, Register src, in
   if (VM_Version::supports_avx512bw()) {
     if (mask_len > 32) {
       kmovql(dst, src);
-      if (mask_len != 64) {
-        kshiftrql(dst, dst, 64 - mask_len);
-      }
     } else {
       kmovdl(dst, src);
       if (mask_len != 32) {
@@ -4301,6 +4298,5 @@ void C2_MacroAssembler::vector_maskall_operation32(KRegister dst, Register src, 
   assert(VM_Version::supports_avx512bw(), "");
   kmovdl(tmp, src);
   kunpckdql(dst, tmp, tmp);
-  kshiftrql(dst, dst, 64 - mask_len);
 }
 #endif
