@@ -88,7 +88,7 @@ public final class ChunkFilename {
        StringBuilder sb = new StringBuilder();
        sb.append(filename);
        sb.append('_');
-       if (counter < 10) { // chronological sorted 
+       if (counter < 10) { // chronological sorted
            sb.append('0');
        }
        sb.append(counter);
