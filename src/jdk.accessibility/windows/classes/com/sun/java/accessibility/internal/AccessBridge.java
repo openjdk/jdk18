@@ -27,6 +27,7 @@ package com.sun.java.accessibility.internal;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.AffineTransform;
 import java.util.*;
 import java.lang.*;
 import java.lang.reflect.*;
