@@ -479,19 +479,11 @@ public final class AccessBridge {
         if (parent == null) {
             return null;
         }
-        Point location = new Point(x, y);
-        InvocationUtils.invokeAndWait(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                AffineTransform at = getTransformFromContext(parent);
-                if (at != null) {
-                    location.setLocation((int) (location.x / at.getScaleX()), (int) (location.y / at.getScaleY()));
-                }
-                return null;
-            }
-        }, parent);
-        x = location.x;
-        y = location.y;
+        GraphicsConfiguration gc = GraphicsEnvironment.getLocalGraphicsEnvironment()
+                .getDefaultScreenDevice().getDefaultConfiguration();
+        gc = AccessibilityGraphicsEnvironment.getGraphicsConfigurationAtPoint(gc, x, y);
+        x = AccessibilityGraphicsEnvironment.toUserSpaceX(gc, x);
+        y = AccessibilityGraphicsEnvironment.toUserSpaceY(gc, y);
         if (windowHandleToContextMap != null &&
             windowHandleToContextMap.containsValue(getRootAccessibleContext(parent))) {
             // Path for applications that register their top-level
@@ -1608,13 +1600,7 @@ public final class AccessBridge {
                                 r.x = p.x;
                                 r.y = p.y;
 
-                                AffineTransform at = getTransformFromContext(ac);
-                                if (at != null) {
-                                    r.x = (int) Math.floor(r.x * at.getScaleX());
-                                    r.y = (int) Math.floor(r.y * at.getScaleY());
-                                    r.width = (int) Math.ceil(r.width * at.getScaleX());
-                                    r.height = (int) Math.ceil(r.height * at.getScaleY());
-                                }
+                                r = AccessibilityGraphicsEnvironment.toDeviceSpaceAbs(r);
                                 return r;
                             }
                         } catch (Exception e) {
@@ -1757,20 +1743,6 @@ public final class AccessBridge {
         }, ac);
     }
 
-    /**
-     * return the screen coordinates transform from an AccessibleContext
-     */
-    private AffineTransform getTransformFromContext(final AccessibleContext ac) {
-        AccessibleComponent acomp = ac.getAccessibleComponent();
-        if (acomp != null) {
-            FontMetrics fm = acomp.getFontMetrics(acomp.getFont());
-            if (fm != null) {
-                return fm.getFontRenderContext().getTransform();
-            }
-        }
-
-        return null;
-    }
     /* ===== AccessibleText methods ===== */
 
     /**
@@ -2289,17 +2261,11 @@ public final class AccessBridge {
                     if (at != null) {
                         Rectangle rect = at.getCharacterBounds(index);
                         if (rect != null) {
-                            AffineTransform transform = getTransformFromContext(ac);
-                            if (transform != null) {
-                                rect.x = (int) Math.floor(rect.x * transform.getScaleX());
-                                rect.y = (int) Math.floor(rect.y * transform.getScaleY());
-                                rect.width = (int) Math.ceil(rect.width * transform.getScaleX());
-                                rect.height = (int) Math.ceil(rect.height * transform.getScaleY());
-                            }
                             String s = at.getAtIndex(AccessibleText.CHARACTER, index);
                             if (s != null && s.equals("\n")) {
                                 rect.width = 0;
                             }
+                            rect = AccessibilityGraphicsEnvironment.toDeviceSpaceAbs(rect);
                             return rect;
                         }
                     }
@@ -7379,6 +7345,123 @@ public final class AccessBridge {
                     throw e;
                 return object;
             }
+        }
+    }
+
+    /**
+     * A helper class to handle coordinate conversion between screen and user spaces.
+     * See {@link sun.java2d.SunGraphicsEnvironment}
+     */
+    private static abstract class AccessibilityGraphicsEnvironment extends GraphicsEnvironment {
+        /**
+         * Returns the graphics configuration which bounds contain the given point.
+         *
+         * See {@link sun.java2d.SunGraphicsEnvironment#getGraphicsConfigurationAtPoint(GraphicsConfiguration, double, double)}
+         *
+         * @param  current the default configuration which is checked in the first
+         *         place
+         * @param  x the x coordinate of the given point
+         * @param  y the y coordinate of the given point
+         * @return the graphics configuration
+         */
+        public static GraphicsConfiguration getGraphicsConfigurationAtPoint(
+                GraphicsConfiguration current, double x, double y) {
+            if (current.getBounds().contains(x, y)) {
+                return current;
+            }
+            GraphicsEnvironment env = getLocalGraphicsEnvironment();
+            for (GraphicsDevice device : env.getScreenDevices()) {
+                GraphicsConfiguration config = device.getDefaultConfiguration();
+                Rectangle bounds = config.getBounds();
+                bounds = toDeviceSpaceAbs(config, bounds.x, bounds.y, bounds.width, bounds.height);
+                if (bounds.contains(x, y)) {
+                    return config;
+                }
+            }
+            return current;
+        }
+
+        /**
+         * Converts absolute x coordinate from the device
+         * space to the user's space using passed graphics configuration.
+         *
+         * @param  gc the graphics configuration to be used for transformation
+         * @param  x absolute coordinate in the device's space
+         * @return the corresponding x coordinate in user's space
+         */
+        public static int toUserSpaceX(GraphicsConfiguration gc, int x) {
+            AffineTransform tx = gc.getDefaultTransform();
+            Rectangle screen = gc.getBounds();
+            return screen.x + clipRound((x - screen.x) / tx.getScaleX());
+        }
+
+        /**
+         * Converts absolute y coordinate from the device
+         * space to the user's space using passed graphics configuration.
+         *
+         * @param  gc the graphics configuration to be used for transformation
+         * @param  y absolute coordinate in the device's space
+         * @return the corresponding y coordinate in user's space
+         */
+        public static int toUserSpaceY(GraphicsConfiguration gc, int y) {
+            AffineTransform tx = gc.getDefaultTransform();
+            Rectangle screen = gc.getBounds();
+            return screen.y + clipRound((y - screen.y) / tx.getScaleY());
+        }
+
+        /**
+         * Converts the rectangle from the user's space to the device space using
+         * appropriate device transformation.
+         *
+         * See {@link sun.java2d.SunGraphicsEnvironment#toDeviceSpaceAbs(Rectangle)}
+         *
+         * @param  rect the rectangle in the user's space
+         * @return the rectangle which uses device space (pixels)
+         */
+        public static Rectangle toDeviceSpaceAbs(Rectangle rect) {
+            GraphicsConfiguration gc = getLocalGraphicsEnvironment()
+                    .getDefaultScreenDevice().getDefaultConfiguration();
+            gc = getGraphicsConfigurationAtPoint(gc, rect.x, rect.y);
+            return toDeviceSpaceAbs(gc, rect.x, rect.y, rect.width, rect.height);
+        }
+
+        /**
+         * Converts absolute coordinates (x, y) and the size (w, h) from the user's
+         * space to the device space using passed graphics configuration.
+         *
+         * See {@link sun.java2d.SunGraphicsEnvironment#toDeviceSpaceAbs(GraphicsConfiguration, int, int, int, int)}
+         *
+         * @param  gc the graphics configuration to be used for transformation
+         * @param  x absolute coordinate in the user's space
+         * @param  y absolute coordinate in the user's space
+         * @param  w the width in the user's space
+         * @param  h the height in the user's space
+         * @return the rectangle which uses device space (pixels)
+         */
+        public static Rectangle toDeviceSpaceAbs(GraphicsConfiguration gc,
+                                                 int x, int y, int w, int h) {
+            AffineTransform tx = gc.getDefaultTransform();
+            Rectangle screen = gc.getBounds();
+            return new Rectangle(
+                    screen.x + clipRound((x - screen.x) * tx.getScaleX()),
+                    screen.y + clipRound((y - screen.y) * tx.getScaleY()),
+                    clipRound(w * tx.getScaleX()),
+                    clipRound(h * tx.getScaleY())
+            );
+        }
+
+        /**
+         * See {@link sun.java2d.pipe.Region#clipRound}
+         */
+        private static int clipRound(final double coordinate) {
+            final double newv = coordinate - 0.5;
+            if (newv < Integer.MIN_VALUE) {
+                return Integer.MIN_VALUE;
+            }
+            if (newv > Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
+            return (int) Math.ceil(newv);
         }
     }
 }
