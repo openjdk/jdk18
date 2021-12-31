@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,7 @@
  *                   -XX:+WhiteBoxAPI
  *                   -XX:CompileCommand=dontinline,compiler.codecache.stress.Helper$TestCase::method
  *                   -XX:+SegmentedCodeCache
- *                   -XX:ReservedCodeCacheSize=16M
+ *                   -XX:ReservedCodeCacheSize=64M
  *                   -XX:CodeCacheMinBlockLength=1
  *                   compiler.codecache.stress.ReturnBlobToWrongHeapTest
  */
@@ -47,7 +47,7 @@ import sun.hotspot.code.BlobType;
 import java.util.ArrayList;
 
 public class ReturnBlobToWrongHeapTest {
-    private static final long largeBlobSize = Helper.WHITE_BOX.getUintxVMFlag("ReservedCodeCacheSize") >> 6;
+    private static final long largeBlobSize = Helper.WHITE_BOX.getUintxVMFlag("ReservedCodeCacheSize") >> 8;
     private static final long codeCacheMinBlockLength = Helper.WHITE_BOX.getUintxVMFlag("CodeCacheMinBlockLength");
     private static final BlobType[] BLOB_TYPES = BlobType.getAvailable().toArray(new BlobType[0]);
 
