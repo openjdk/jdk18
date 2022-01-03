@@ -24,6 +24,7 @@
  */
 
 #include <cstring>
+#include <cstddef>
 #include "tstrings.h"
 #include "JvmLauncher.h"
 #include "Log.h"
