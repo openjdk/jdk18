@@ -172,17 +172,17 @@ Handle VectorSupport::allocate_vector_payload(InstanceKlass* ik, frame* fr, Regi
       return allocate_vector_payload_helper(ik, fr, reg_map, location, THREAD); // safepoint
     }
 #ifdef ASSERT
-    // Other payload values are: 'oop' type location and Scalar-replaced boxed vector representation.
+    // Other payload values are: 'oop' type location and scalar-replaced boxed vector representation.
     // They will be processed in Deoptimization::reassign_fields() after all objects are reallocated.
     else {
       Location::Type loc_type = location.type();
       assert(loc_type == Location::oop || loc_type == Location::narrowoop,
              "expected 'oop'(%d) or 'narrowoop'(%d) types location but got: %d", Location::oop, Location::narrowoop, loc_type);
     }
-  } else if (!payload->is_object()) {
+  } else if (!payload->is_object() && !payload->is_constant_oop()) {
     stringStream ss;
     payload->print_on(&ss);
-    assert(payload->is_object(), "expected 'object' value for scalar-replaced boxed vector but got: %s", ss.as_string());
+    assert(false, "expected 'object' value for scalar-replaced boxed vector but got: %s", ss.as_string());
 #endif
   }
   return Handle(THREAD, nullptr);
