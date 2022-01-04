@@ -159,8 +159,7 @@ int MacroAssembler::pd_patch_instruction_size(address branch, address target) {
     Instruction_aarch64::patch(branch+8, 20, 5, (dest >>= 16) & 0xffff);
     assert(target_addr_for_insn(branch) == target, "should be");
     instructions = 3;
-  } else if (Instruction_aarch64::extract(insn, 31, 22) == 0b1011100101 &&
-             Instruction_aarch64::extract(insn, 4, 0) == 0b11111) {
+  } else if (NativeInstruction::is_ldrw_to_zr(address(&insn))) {
     // nothing to do
     assert(target == 0, "did not expect to relocate target for polling page load");
   } else {
@@ -290,8 +289,7 @@ address MacroAssembler::target_addr_for_insn(address insn_addr, unsigned insn) {
 }
 
 address MacroAssembler::target_addr_for_insn_allow_null_ret(address insn_addr, unsigned insn) {
-  if (Instruction_aarch64::extract(insn, 31, 22) == 0b1011100101 &&
-      Instruction_aarch64::extract(insn, 4, 0) == 0b11111) {
+  if (NativeInstruction::is_ldrw_to_zr(address(&insn))) {
     return 0;
   }
   return MacroAssembler::target_addr_for_insn(insn_addr, insn);
