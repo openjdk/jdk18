@@ -25,6 +25,7 @@
 
 package jdk.internal.foreign;
 
+import jdk.internal.misc.ScopedMemoryAccess;
 import jdk.internal.vm.annotation.ForceInline;
 
 import java.lang.invoke.MethodHandles;
@@ -39,7 +40,6 @@ import java.lang.ref.Cleaner;
  */
 final class ConfinedScope extends ResourceScopeImpl {
 
-    private boolean closed; // = false
     private int lockCount = 0;
     private int asyncReleaseCount = 0;
     private final Thread owner;
@@ -55,29 +55,19 @@ final class ConfinedScope extends ResourceScopeImpl {
     }
 
     public ConfinedScope(Thread owner, Cleaner cleaner) {
-        super(new ConfinedResourceList(), cleaner);
+        super(owner, new ConfinedResourceList(), cleaner);
         this.owner = owner;
-    }
-
-    @ForceInline
-    public final void checkValidState() {
-        if (owner != Thread.currentThread()) {
-            throw new IllegalStateException("Attempted access outside owning thread");
-        }
-        if (closed) {
-            throw new IllegalStateException("Already closed");
-        }
     }
 
     @Override
     public boolean isAlive() {
-        return !closed;
+        return state != CLOSED;
     }
 
     @Override
     @ForceInline
     public void acquire0() {
-        checkValidState();
+        checkValidStateSlow();
         if (lockCount == MAX_FORKS) {
             throw new IllegalStateException("Scope keep alive limit exceeded");
         }
@@ -99,17 +89,12 @@ final class ConfinedScope extends ResourceScopeImpl {
     }
 
     void justClose() {
-        this.checkValidState();
+        checkValidStateSlow();
         if (lockCount == 0 || lockCount - ((int)ASYNC_RELEASE_COUNT.getVolatile(this)) == 0) {
-            closed = true;
+            state = CLOSED;
         } else {
             throw new IllegalStateException("Scope is kept alive by " + lockCount + " scopes");
         }
-    }
-
-    @Override
-    public Thread ownerThread() {
-        return owner;
     }
 
     /**
