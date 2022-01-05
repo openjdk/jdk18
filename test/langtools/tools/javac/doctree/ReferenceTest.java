@@ -216,6 +216,7 @@ public class ReferenceTest extends AbstractProcessor {
     String type2Name(TypeMirror type) {
         return switch (type.getKind()) {
             case DECLARED -> elementSignature(((DeclaredType) type).asElement());
+            case INT, LONG -> type.toString();
             default -> throw new AssertionError("Unhandled type kind: " + type.getKind());
         };
     }
@@ -238,6 +239,14 @@ public class ReferenceTest extends AbstractProcessor {
  *
  * @see #methodSearch(String)   signature:METHOD:ReferenceTestExtras.methodSearch(java.lang.String)
  * @see #methodSearch(StringBuilder)   signature:METHOD:ReferenceTestExtras.methodSearch(java.lang.CharSequence)
+ * @see #methodSearchPrimitive1(int, int)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive1(int, int)
+ * @see #methodSearchPrimitive1(long, int)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive1(long, int)
+ * @see #methodSearchPrimitive1(int, long)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive1(int, long)
+ * @see #methodSearchPrimitive1(long, long)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive1(long, long)
+ * @see #methodSearchPrimitive2(int, int)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive2(int, int)
+ * @see #methodSearchPrimitive2(long, int)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive2(long, int)
+ * @see #methodSearchPrimitive2(int, long)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive2(int, long)
+ * @see #methodSearchPrimitive2(long, long)   signature:METHOD:ReferenceTestExtras.methodSearchPrimitive2(long, long)
  */
 class ReferenceTestExtras {
     int ReferenceTestExtras;            // field
@@ -257,6 +266,16 @@ class ReferenceTestExtras {
     void methodSearch(Object o) {}
     void methodSearch(String s) {}
     void methodSearch(CharSequence cs) {}
+
+    void methodSearchPrimitive1(int i, int j) {}
+    void methodSearchPrimitive1(long i, int j) {}
+    void methodSearchPrimitive1(int i, long j) {}
+    void methodSearchPrimitive1(long i, long j) {}
+
+    void methodSearchPrimitive2(long i, long j) {}
+    void methodSearchPrimitive2(int i, long j) {}
+    void methodSearchPrimitive2(long i, int j) {}
+    void methodSearchPrimitive2(int i, int j) {}
 }
 
 
