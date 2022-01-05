@@ -201,7 +201,7 @@ public abstract non-sealed class ResourceScopeImpl implements ResourceScope, Seg
      * a confined scope and this method is called outside of the owner thread.
      */
     public final void checkValidStateSlow() {
-        if (ownerThread() != null && Thread.currentThread() != ownerThread()) {
+        if (owner != null && Thread.currentThread() != owner) {
             throw new IllegalStateException("Attempted access outside owning thread");
         } else if (!isAlive()) {
             throw new IllegalStateException("Already closed");
