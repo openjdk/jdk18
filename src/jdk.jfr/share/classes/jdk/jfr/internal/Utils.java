@@ -870,8 +870,8 @@ public final class Utils {
 
     public static long getChunkStartNanos() {
         long nanos = JVM.getJVM().getChunkStartNanos();
-        // JVM::getChunkStartNanos() may returns an artificially bumped
-        // timestamp. Spin here to give Instant.now() a chance to catch up.
+        // JVM::getChunkStartNanos() may return a bumped timestamp, +1 ns or +2 ns.
+        // Spin here to give Instant.now() a chance to catch up.
         awaitUniqueTimestamp();
         return nanos;
     }
