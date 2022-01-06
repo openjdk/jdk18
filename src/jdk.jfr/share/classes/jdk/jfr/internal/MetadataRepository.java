@@ -296,7 +296,6 @@ public final class MetadataRepository {
             }
             unregistered = false;
         }
-        
         return Utils.epochNanosToInstant(chunkStart);
     }
 
