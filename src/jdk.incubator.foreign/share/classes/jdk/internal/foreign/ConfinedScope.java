@@ -25,7 +25,6 @@
 
 package jdk.internal.foreign;
 
-import jdk.internal.misc.ScopedMemoryAccess;
 import jdk.internal.vm.annotation.ForceInline;
 
 import java.lang.invoke.MethodHandles;
@@ -40,9 +39,7 @@ import java.lang.ref.Cleaner;
  */
 final class ConfinedScope extends ResourceScopeImpl {
 
-    private int lockCount = 0;
     private int asyncReleaseCount = 0;
-    private final Thread owner;
 
     static final VarHandle ASYNC_RELEASE_COUNT;
 
@@ -56,7 +53,6 @@ final class ConfinedScope extends ResourceScopeImpl {
 
     public ConfinedScope(Thread owner, Cleaner cleaner) {
         super(owner, new ConfinedResourceList(), cleaner);
-        this.owner = owner;
     }
 
     @Override
@@ -68,17 +64,17 @@ final class ConfinedScope extends ResourceScopeImpl {
     @ForceInline
     public void acquire0() {
         checkValidStateSlow();
-        if (lockCount == MAX_FORKS) {
+        if (state == MAX_FORKS) {
             throw new IllegalStateException("Scope keep alive limit exceeded");
         }
-        lockCount++;
+        state++;
     }
 
     @Override
     @ForceInline
     public void release0() {
         if (Thread.currentThread() == owner) {
-            lockCount--;
+            state--;
         } else {
             // It is possible to end up here in two cases: this scope was kept alive by some other confined scope
             // which is implicitly released (in which case the release call comes from the cleaner thread). Or,
@@ -90,10 +86,10 @@ final class ConfinedScope extends ResourceScopeImpl {
 
     void justClose() {
         checkValidStateSlow();
-        if (lockCount == 0 || lockCount - ((int)ASYNC_RELEASE_COUNT.getVolatile(this)) == 0) {
+        if (state == 0 || state - ((int)ASYNC_RELEASE_COUNT.getVolatile(this)) == 0) {
             state = CLOSED;
         } else {
-            throw new IllegalStateException("Scope is kept alive by " + lockCount + " scopes");
+            throw new IllegalStateException("Scope is kept alive by " + state + " scopes");
         }
     }
 
