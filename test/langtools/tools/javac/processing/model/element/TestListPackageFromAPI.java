@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,12 +35,8 @@
 
 import com.sun.source.util.JavacTask;
 import java.io.IOException;
-import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -57,27 +53,6 @@ import javax.tools.ToolProvider;
 public class TestListPackageFromAPI {
 
     public static void main(String... args) throws IOException, URISyntaxException, InterruptedException {
-        Path base = Paths.get(".");
-        Path src = base.resolve("src");
-        Path classes = base.resolve("classes");
-
-        Files.createDirectories(src);
-        Files.createDirectories(classes);
-
-        Files.newOutputStream(classes.resolve("Test$Nested1.class")).close();
-        Files.newOutputStream(classes.resolve("Test.class")).close();
-
-        Thread.sleep(2000);
-
-        Path testSource = src.resolve("Test.java");
-
-        try (Writer w = Files.newBufferedWriter(testSource)) {
-            w.write("""
-                    public class Test {
-                        public static class Nested {}
-                    }
-                    """);
-        }
         try (JavaFileManager fm = ToolProvider.getSystemJavaCompiler().getStandardFileManager(null, null, null)) {
             List<JavaFileObject> testClasses = List.of(
                 new TestFileObject("Test"),
@@ -86,14 +61,14 @@ public class TestListPackageFromAPI {
             List<JavaFileObject> testSources = List.of(
                     new TestFileObject("Test",
                                        """
-                                       public class Test {
-                                           public static class Nested1 {}
+                                       class Test {
+                                           public static class Nested {}
                                        }
                                        """)
             );
             JavaFileManager testFM = new ForwardingJavaFileManagerImpl(fm, testClasses, testSources);
             DiagnosticListener<JavaFileObject> noErrors = d -> { throw new AssertionError("Should not happen: " + d); };
-            JavacTask task = (JavacTask) ToolProvider.getSystemJavaCompiler().getTask(null, testFM, noErrors, List.of("--class-path", classes.toString(), "-sourcepath", src.toString()), null, List.of(new TestFileObject("Input", "")));
+            JavacTask task = (JavacTask) ToolProvider.getSystemJavaCompiler().getTask(null, testFM, noErrors, null, null, List.of(new TestFileObject("Input", "")));
             PackageElement pack = task.getElements().getPackageElement("");
             pack.getEnclosedElements().forEach(e -> System.err.println(e));
         }
@@ -111,7 +86,7 @@ public class TestListPackageFromAPI {
         }
 
         public TestFileObject(String className, String code) throws URISyntaxException {
-            super(new URI("mem://" + className + ".class"), Kind.SOURCE);
+            super(new URI("mem://" + className + ".java"), Kind.SOURCE);
             this.className = className;
             this.code = code;
         }
@@ -144,17 +119,23 @@ public class TestListPackageFromAPI {
 
         @Override
         public Iterable<JavaFileObject> list(JavaFileManager.Location location, String packageName, Set<JavaFileObject.Kind> kinds, boolean recurse) throws IOException {
-            if (location == StandardLocation.CLASS_PATH && packageName.isEmpty()) {
+            if (packageName.isEmpty()) {
                 List<JavaFileObject> result = new ArrayList<>();
-                if (kinds.contains(Kind.CLASS)) {
+                if (location == StandardLocation.CLASS_PATH && kinds.contains(Kind.CLASS)) {
                     result.addAll(testClasses);
-                }
-                if (kinds.contains(Kind.SOURCE)) {
+                } else if (location == StandardLocation.SOURCE_PATH && kinds.contains(Kind.SOURCE)) {
                     result.addAll(testSources);
                 }
                 return result;
             }
             return super.list(location, packageName, kinds, recurse);
+        }
+
+        @Override
+        public boolean hasLocation(Location location) {
+            return location == StandardLocation.CLASS_PATH ||
+                   location == StandardLocation.SOURCE_PATH ||
+                   super.hasLocation(location);
         }
 
         @Override
