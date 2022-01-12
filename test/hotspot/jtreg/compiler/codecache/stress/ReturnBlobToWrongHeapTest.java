@@ -35,8 +35,9 @@
  *                   -XX:+WhiteBoxAPI
  *                   -XX:CompileCommand=dontinline,compiler.codecache.stress.Helper$TestCase::method
  *                   -XX:+SegmentedCodeCache
- *                   -XX:ReservedCodeCacheSize=64M
+ *                   -XX:ReservedCodeCacheSize=16M
  *                   -XX:CodeCacheMinBlockLength=1
+ *                   -XX:CICompilerCount=2
  *                   compiler.codecache.stress.ReturnBlobToWrongHeapTest
  */
 
@@ -47,7 +48,7 @@ import sun.hotspot.code.BlobType;
 import java.util.ArrayList;
 
 public class ReturnBlobToWrongHeapTest {
-    private static final long largeBlobSize = Helper.WHITE_BOX.getUintxVMFlag("ReservedCodeCacheSize") >> 8;
+    private static final long largeBlobSize = Helper.WHITE_BOX.getUintxVMFlag("ReservedCodeCacheSize") >> 6;
     private static final long codeCacheMinBlockLength = Helper.WHITE_BOX.getUintxVMFlag("CodeCacheMinBlockLength");
     private static final BlobType[] BLOB_TYPES = BlobType.getAvailable().toArray(new BlobType[0]);
 
