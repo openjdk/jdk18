@@ -22,11 +22,8 @@
  */
 package org.openjdk.bench.jdk.incubator.foreign;
 
-import jdk.incubator.foreign.MemoryAddress;
-import jdk.incubator.foreign.MemoryLayout;
 import jdk.incubator.foreign.MemorySegment;
 import jdk.incubator.foreign.ResourceScope;
-import jdk.incubator.foreign.ValueLayout;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -37,11 +34,10 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Warmup;
-import sun.misc.Unsafe;
 
-import java.lang.invoke.VarHandle;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.IntBuffer;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
@@ -62,13 +58,16 @@ public class LoopOverSlice {
     static final int ALLOC_SIZE = ELEM_SIZE * CARRIER_SIZE;
 
     MemorySegment nativeSegment, heapSegment;
+    IntBuffer nativeBuffer, heapBuffer;
     ResourceScope scope;
 
     @Setup
     public void setup() {
         scope = ResourceScope.newConfinedScope();
         nativeSegment = MemorySegment.allocateNative(ALLOC_SIZE, scope);
-        heapSegment = MemorySegment.ofArray(new float[ELEM_SIZE]);
+        heapSegment = MemorySegment.ofArray(new int[ELEM_SIZE]);
+        nativeBuffer = ByteBuffer.allocateDirect(ALLOC_SIZE).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer();
+        heapBuffer = IntBuffer.wrap(new int[ELEM_SIZE]);
     }
 
     @TearDown
@@ -77,19 +76,29 @@ public class LoopOverSlice {
     }
 
     @Benchmark
-    public void native_slice_loop() {
-        new NativeWrapper(nativeSegment).forEach(NativeWrapper.Element::get);
+    public void native_segment_slice_loop() {
+        new NativeSegmentWrapper(nativeSegment).forEach(NativeSegmentWrapper.Element::get);
     }
 
     @Benchmark
-    public void heap_slice_loop() {
-        new HeapWrapper(heapSegment).forEach(HeapWrapper.Element::get);
+    public void native_buffer_slice_loop() {
+        new NativeBufferWrapper(nativeBuffer).forEach(NativeBufferWrapper.Element::get);
     }
 
-    class HeapWrapper implements Iterable<HeapWrapper.Element> {
+    @Benchmark
+    public void heap_segment_slice_loop() {
+        new HeapSegmentWrapper(heapSegment).forEach(HeapSegmentWrapper.Element::get);
+    }
+
+    @Benchmark
+    public void heap_buffer_slice_loop() {
+        new HeapBufferWrapper(heapBuffer).forEach(HeapBufferWrapper.Element::get);
+    }
+
+    class HeapSegmentWrapper implements Iterable<HeapSegmentWrapper.Element> {
         final MemorySegment segment;
 
-        public HeapWrapper(MemorySegment segment) {
+        public HeapSegmentWrapper(MemorySegment segment) {
             this.segment = segment;
         }
 
@@ -126,15 +135,11 @@ public class LoopOverSlice {
         }
     }
 
-    class NativeWrapper implements Iterable<NativeWrapper.Element> {
+    class NativeSegmentWrapper implements Iterable<NativeSegmentWrapper.Element> {
         final MemorySegment segment;
 
-        public NativeWrapper(MemorySegment segment) {
+        public NativeSegmentWrapper(MemorySegment segment) {
             this.segment = segment;
-        }
-
-        int get() {
-            return segment.getAtIndex(JAVA_INT, 0);
         }
 
         @Override
@@ -166,6 +171,88 @@ public class LoopOverSlice {
 
             int get() {
                 return segment.getAtIndex(JAVA_INT, 0);
+            }
+        }
+    }
+
+    class NativeBufferWrapper implements Iterable<NativeBufferWrapper.Element> {
+        final IntBuffer buffer;
+
+        public NativeBufferWrapper(IntBuffer buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public Iterator<Element> iterator() {
+            return new Iterator<Element>() {
+
+                IntBuffer current = buffer;
+
+                @Override
+                public boolean hasNext() {
+                    return current.position() < current.limit();
+                }
+
+                @Override
+                public Element next() {
+                    Element element = new Element(current);
+                    int lim = current.limit();
+                    current = current.slice(1, lim - 1);
+                    return element;
+                }
+            };
+        }
+
+        static class Element {
+            final IntBuffer buffer;
+
+            public Element(IntBuffer segment) {
+                this.buffer = segment;
+            }
+
+            int get() {
+                return buffer.get( 0);
+            }
+        }
+    }
+
+    class HeapBufferWrapper implements Iterable<HeapBufferWrapper.Element> {
+        final IntBuffer buffer;
+
+        public HeapBufferWrapper(IntBuffer buffer) {
+            this.buffer = buffer;
+        }
+
+        @Override
+        public Iterator<Element> iterator() {
+            return new Iterator<Element>() {
+
+                IntBuffer current = buffer;
+
+                @Override
+                public boolean hasNext() {
+                    return current.position() < current.limit();
+                }
+
+                @Override
+                public Element next() {
+                    Element element = new Element(current);
+                    int lim = current.limit();
+                    current = current.slice(1, lim - 1);
+                    return element;
+                }
+            };
+        }
+
+        static class Element {
+            final IntBuffer buffer;
+
+            public Element(IntBuffer segment) {
+                this.buffer = segment;
+            }
+
+            int get() {
+                return buffer.get( 0);
             }
         }
     }
