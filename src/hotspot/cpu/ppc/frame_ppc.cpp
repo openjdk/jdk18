@@ -302,7 +302,7 @@ bool frame::is_interpreted_frame_valid(JavaThread* thread) const {
   if (sp() == 0 || (intptr_t(sp()) & (wordSize-1)) != 0) {
     return false;
   }
-  if (fp() + abi_minframe_size + ijava_state_size < sp()) {
+  if (fp() - (abi_minframe_size + ijava_state_size) < sp()) {
     return false;
   }
   // These are hacks to keep us out of trouble.
