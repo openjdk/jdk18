@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -135,28 +135,40 @@ bool NonblockingQueue<T, next_ptr>::try_pop(T** node_ptr) {
   }
 
   T* next_node = Atomic::load_acquire(next_ptr(*result));
-  if (next_node == NULL) {
-    // A concurrent try_pop already claimed what was the last entry.  That
-    // operation may not have cleared queue head yet, but we should still
-    // treat the queue as empty until a push/append operation changes head
-    // to an entry with a non-NULL next value.
-    *node_ptr = NULL;
-    return true;
-
-  } else if (!is_end(next_node)) {
-    // The next_node is not at the end of the queue's list.  Use the "usual"
-    // lock-free pop from the head of a singly linked list to try to take it.
-    if (result == Atomic::cmpxchg(&_head, result, next_node)) {
-      // Former head successfully taken.
+  if (!is_end(next_node)) {
+    // [Clause 1]
+    // Attempt to advance the list, moving next_node to the head and
+    // shifting result out of the list.  There are several cases.
+    // (1) next_node is the extension of the queue's list.
+    // (2) next_node is NULL, because a competing try_pop took result.
+    // (3) next_node is the extension of some unrelated list, because a
+    // competing try_pop took result.
+    // Cases (1) and (3) are distinguished by whether the advancement succeeds.
+    if (result != Atomic::cmpxchg(&_head, result, next_node)) {
+      // [Clause 1a]
+      // The cmpxchg to advance the list failed; a concurrent try_pop won
+      // the race.  There may further entries.
+      return false;
+    } else if (next_node == NULL) {
+      // [Clause 1b]
+      // The cmpxchg to advance the list succeeded, but a concurrent try_pop
+      // has already claimed result (which was the last entry in the list)
+      // by nulling result's next field.  The advance set _head to NULL,
+      // "helping" the competing try_pop.  _head will remain NULL until a
+      // subsequent push/append.  This is a lost race, and we report it as
+      // such for consistency, though we could report the queue was empty.
+      return false;
+    } else {
+      // [Clause 1c]
+      // Successfully advanced the list and claimed result.  Return the
+      // result after unlinking it from the remainder of the list.
       set_next(*result, NULL);
       *node_ptr = result;
       return true;
-    } else {
-      // Lost race to take result from the head of the list.
-      return false;
     }
 
-  } else if (is_end(Atomic::cmpxchg(next_ptr(*result), end_marker(), (T*)NULL))) {
+  } else if (is_end(Atomic::cmpxchg(next_ptr(*result), next_node, (T*)NULL))) {
+    // [Clause 2]
     // Result was the last entry and we've claimed it by setting its next
     // value to NULL.  However, this leaves the queue in disarray.  Fix up
     // the queue, possibly in conjunction with other concurrent operations.
@@ -170,7 +182,8 @@ bool NonblockingQueue<T, next_ptr>::try_pop(T** node_ptr) {
     Atomic::cmpxchg(&_tail, result, (T*)NULL);
 
     // Attempt to change the queue head from result to NULL.  Failure of the
-    // cmpxchg indicates a concurrent push/append updated the head first.
+    // cmpxchg indicates a concurrent operation updated _head first.  That
+    // could be either a push/extend or a try_pop in [Clause 1b].
     Atomic::cmpxchg(&_head, result, (T*)NULL);
 
     // The queue has been restored to order, and we can return the result.
@@ -178,9 +191,10 @@ bool NonblockingQueue<T, next_ptr>::try_pop(T** node_ptr) {
     return true;
 
   } else {
-    // Result was the last entry in the list, but either a concurrent pop
-    // claimed it first or a concurrent push/append extended the list from
-    // it.  Either way, we lost the race.
+    // [Clause 3]
+    // Result was the last entry in the list, but either a concurrent
+    // try_pop claimed it first or a concurrent push/append extended the
+    // list from it.  Either way, we lost the race to claim it.
     return false;
   }
 }
