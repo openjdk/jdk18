@@ -58,13 +58,14 @@ bool JavaThread::pd_get_top_frame_for_profiling(frame* fr_addr, void* ucontext, 
   // if we were running Java code when SIGPROF came in.
   if (isInJava) {
     ucontext_t* uc = (ucontext_t*) ucontext;
-    frame ret_frame((intptr_t*)uc->uc_mcontext.regs->gpr[1/*REG_SP*/],
-                     (address)uc->uc_mcontext.regs->nip);
+    address pc = (address)uc->uc_mcontext.regs->nip;
 
-    if (ret_frame.pc() == NULL) {
+    if (pc == NULL) {
       // ucontext wasn't useful
       return false;
     }
+
+    frame ret_frame((intptr_t*)uc->uc_mcontext.regs->gpr[1/*REG_SP*/], pc);
 
     if (ret_frame.fp() == NULL) {
       // The found frame does not have a valid frame pointer.
