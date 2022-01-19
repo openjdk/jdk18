@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.UnixDomainSocketAddress;
 import java.net.StandardProtocolFamily;
 import java.net.StandardSocketOptions;
 import java.nio.*;
@@ -164,10 +163,6 @@ class PipeImpl
                     try {
                         if (ssc != null)
                             ssc.close();
-                        if (sa instanceof UnixDomainSocketAddress) {
-                            Path path = ((UnixDomainSocketAddress) sa).getPath();
-                            Files.deleteIfExists(path);
-                        }
                     } catch (IOException e2) {}
                 }
             }
