@@ -184,8 +184,8 @@ class PipeImpl
     /**
      * Creates Pipe implementation that supports optionally buffering.
      *
-     * @implNote The pipe uses Unix domain sockets where possible. It uses a
-     * loopback connection on older editions of Windows. When buffering is
+     * @implNote The pipe uses Unix domain sockets where possible (disabled
+     * currently on windows). It uses a loopback connection. When buffering is
      * disabled then it sets TCP_NODELAY on the sink channel.
      */
     @SuppressWarnings("removal")
@@ -212,23 +212,8 @@ class PipeImpl
         return sink;
     }
 
-    private static volatile boolean noUnixDomainSockets;
-
     private static ServerSocketChannel createListener() throws IOException {
-        ServerSocketChannel listener = null;
-        if (!noUnixDomainSockets) {
-            try {
-                listener = ServerSocketChannel.open(StandardProtocolFamily.UNIX);
-                return listener.bind(null);
-            } catch (UnsupportedOperationException | IOException e) {
-                // IOException is most likely to be caused by the temporary directory
-                // name being too long. Possibly should log this.
-                noUnixDomainSockets = true;
-                if (listener != null)
-                    listener.close();
-            }
-        }
-        listener = ServerSocketChannel.open();
+        ServerSocketChannel listener = ServerSocketChannel.open();
         InetAddress lb = InetAddress.getLoopbackAddress();
         listener.bind(new InetSocketAddress(lb, 0));
         return listener;
