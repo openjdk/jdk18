@@ -289,7 +289,7 @@ address MacroAssembler::target_addr_for_insn(address insn_addr, unsigned insn) {
   return address(((uint64_t)insn_addr + (offset << 2)));
 }
 
-address MacroAssembler::target_addr_for_insn_allow_null_ret(address insn_addr, unsigned insn) {
+address MacroAssembler::target_addr_for_insn_or_null(address insn_addr, unsigned insn) {
   if (NativeInstruction::is_ldrw_to_zr(address(&insn))) {
     return 0;
   }
