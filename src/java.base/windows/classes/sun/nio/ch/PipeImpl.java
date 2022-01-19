@@ -184,8 +184,7 @@ class PipeImpl
     /**
      * Creates Pipe implementation that supports optionally buffering.
      *
-     * @implNote The pipe uses Unix domain sockets where possible (disabled
-     * currently on windows). It uses a loopback connection. When buffering is
+     * @implNote Uses a loopback connection. When buffering is
      * disabled then it sets TCP_NODELAY on the sink channel.
      */
     @SuppressWarnings("removal")
